@@ -281,6 +281,7 @@ export const SettingsScreen = {
       </div>
     `;
 
+    ScreenUtils.animateIn(this.container);
     ScreenUtils.indexFocusables(this.container);
     this.applyFocus();
   },

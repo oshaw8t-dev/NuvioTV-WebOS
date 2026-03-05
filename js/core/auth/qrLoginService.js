@@ -314,16 +314,16 @@ export const QrLoginService = {
     try {
       await ensureQrSessionAuthenticated();
       const token = getBearerToken();
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/tv-logins-exchange`, {
-        method: "POST",
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/exchange_tv_login_session`, {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           apikey: SUPABASE_ANON_KEY,
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          code,
-          device_nonce: deviceNonce
+          p_code: code,
+          p_device_nonce: deviceNonce
         })
       });
 
@@ -334,9 +334,10 @@ export const QrLoginService = {
       }
 
       const result = await response.json();
-      const tokens = extractSessionTokens(result) || {
-        accessToken: result?.access_token || null,
-        refreshToken: result?.refresh_token || null
+      const row = Array.isArray(result) ? result[0] : result;
+      const tokens = extractSessionTokens(row) || {
+        accessToken: row?.access_token || null,
+        refreshToken: row?.refresh_token || null
       };
       if (!tokens?.accessToken || !tokens?.refreshToken) {
         lastError = "QR exchange missing session tokens";

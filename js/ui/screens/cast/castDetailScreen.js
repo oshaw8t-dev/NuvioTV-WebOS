@@ -143,12 +143,14 @@ export const CastDetailScreen = {
         <button class="cast-detail-back focusable" data-action="back">Back</button>
       </div>
     `;
+    ScreenUtils.animateIn(this.container);
     ScreenUtils.indexFocusables(this.container);
     ScreenUtils.setInitialFocus(this.container);
   },
 
   render() {
     const person = this.person || {};
+
     const creditsHtml = this.credits.length
       ? this.credits.map((item) => `
           <article class="cast-credit-card focusable"
@@ -187,14 +189,27 @@ export const CastDetailScreen = {
       </div>
     `;
 
+    ScreenUtils.animateIn(this.container);
     ScreenUtils.indexFocusables(this.container);
     ScreenUtils.setInitialFocus(this.container);
+  },
+
+  _goBack() {
+    if (this.params?.fromItemId) {
+      Router.navigate("detail", {
+        itemId: this.params.fromItemId,
+        itemType: this.params.fromItemType || "movie",
+        fallbackTitle: this.params.fromFallbackTitle || ""
+      });
+    } else {
+      Router.back();
+    }
   },
 
   onKeyDown(event) {
     if (isBackEvent(event)) {
       event?.preventDefault?.();
-      Router.back();
+      this._goBack();
       return;
     }
     if (ScreenUtils.handleDpadNavigation(event, this.container)) {
@@ -209,7 +224,7 @@ export const CastDetailScreen = {
     }
     const action = String(current.dataset.action || "");
     if (action === "back") {
-      Router.back();
+      this._goBack();
       return;
     }
     if (action === "openDetail") {

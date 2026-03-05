@@ -219,6 +219,7 @@ export const LibraryScreen = {
       </div>
     `;
 
+    ScreenUtils.animateIn(this.container);
     ScreenUtils.indexFocusables(this.container);
     ScreenUtils.setInitialFocus(this.container, ".library-type-tabs .focusable");
   },

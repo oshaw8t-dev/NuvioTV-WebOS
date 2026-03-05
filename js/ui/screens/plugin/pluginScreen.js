@@ -37,22 +37,19 @@ export const PluginScreen = {
   async collectModel() {
     const addons = await addonRepository.getInstalledAddons();
     const addonUrls = addonRepository.getInstalledAddonUrls();
-    return {
-      addons,
-      addonUrls
-    };
+    return { addons, addonUrls };
   },
 
   getRowMaxCol(row) {
-    if (row >= 3) {
-      return 2;
-    }
+    if (row === 0) return 1; // input + install button
+    if (row >= 3) return 2;
     return 0;
   },
 
   async render() {
     this.model = await this.collectModel();
     this.actionMap = new Map();
+
     const addonRows = this.model.addons.map((addon, index) => {
       const baseUrl = addon.baseUrl || this.model.addonUrls[index] || "";
       const upActionId = `addon_up_${index}`;
@@ -60,9 +57,7 @@ export const PluginScreen = {
       const removeActionId = `addon_remove_${index}`;
       this.actionMap.set(upActionId, async () => {
         const urls = addonRepository.getInstalledAddonUrls();
-        if (index <= 0 || index >= urls.length) {
-          return;
-        }
+        if (index <= 0 || index >= urls.length) return;
         const next = [...urls];
         const tmp = next[index - 1];
         next[index - 1] = next[index];
@@ -72,9 +67,7 @@ export const PluginScreen = {
       });
       this.actionMap.set(downActionId, async () => {
         const urls = addonRepository.getInstalledAddonUrls();
-        if (index < 0 || index >= urls.length - 1) {
-          return;
-        }
+        if (index < 0 || index >= urls.length - 1) return;
         const next = [...urls];
         const tmp = next[index + 1];
         next[index + 1] = next[index];
@@ -118,15 +111,16 @@ export const PluginScreen = {
     }).join("");
 
     this.actionMap.set("install_addon", async () => {
-      const value = window.prompt("Install addon URL", "https://example.com/manifest.json");
-      if (value === null) {
-        return;
-      }
-      const clean = String(value).trim();
+      const input = this.container?.querySelector("#addonUrlInput");
+      const clean = String(input?.value || "").trim();
       if (!clean) {
+        if (input) {
+          input.focus();
+        }
         return;
       }
       await addonRepository.addAddon(clean);
+      if (input) input.value = "";
       await this.render();
     });
     this.actionMap.set("manage_from_phone", () => Router.navigate("syncCode"));
@@ -149,11 +143,22 @@ export const PluginScreen = {
           <section class="addons-install-card">
             <h2>Install addon</h2>
             <div class="addons-install-row">
-              <div class="addons-install-input">https://example.com</div>
+              <input
+                id="addonUrlInput"
+                class="addons-install-input addons-focusable"
+                type="text"
+                data-zone="content"
+                data-row="0"
+                data-col="0"
+                placeholder="https://example.com/manifest.json"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+              />
               <button class="addons-install-btn addons-focusable"
                       data-zone="content"
                       data-row="0"
-                      data-col="0"
+                      data-col="1"
                       data-action-id="install_addon">Install</button>
             </div>
           </section>
@@ -188,6 +193,7 @@ export const PluginScreen = {
         </main>
       </div>
     `;
+    ScreenUtils.animateIn(this.container);
     this.normalizeFocus();
     this.applyFocus();
   },
@@ -220,7 +226,12 @@ export const PluginScreen = {
 
     if (target) {
       target.classList.add("focused");
-      target.focus();
+      // Per gli input non chiamare focus() automaticamente per non aprire la tastiera
+      // a meno che non sia già l'elemento attivo
+      const tagName = String(target.tagName || "").toUpperCase();
+      if (tagName !== "INPUT") {
+        target.focus();
+      }
     }
   },
 
@@ -246,24 +257,25 @@ export const PluginScreen = {
 
   async activateFocused() {
     const current = this.container.querySelector(".addons-focusable.focused");
-    if (!current) {
-      return;
-    }
+    if (!current) return;
 
     if (String(current.dataset.zone || "") === "rail") {
       const id = String(current.dataset.railAction || "");
       const action = RAIL_ITEMS.find((item) => item.id === id)?.action;
-      if (action) {
-        await action();
-      }
+      if (action) await action();
+      return;
+    }
+
+    // Se l'elemento focused è l'input URL, aprilo per digitare
+    const tagName = String(current.tagName || "").toUpperCase();
+    if (tagName === "INPUT") {
+      current.focus();
       return;
     }
 
     const actionId = String(current.dataset.actionId || "");
     const action = this.actionMap.get(actionId);
-    if (!action) {
-      return;
-    }
+    if (!action) return;
     await action();
     if (Router.getCurrent() === "plugin") {
       this.normalizeFocus();
@@ -273,6 +285,18 @@ export const PluginScreen = {
 
   async onKeyDown(event) {
     const code = Number(event?.keyCode || 0);
+
+    // Se il focus è sull'input URL, lascia che i tasti funzionino normalmente
+    const activeEl = document.activeElement;
+    const activeTagName = String(activeEl?.tagName || "").toUpperCase();
+    if (activeTagName === "INPUT" && code !== 461 && code !== 27 && code !== 10009) {
+      // Invio sull'input = installa
+      if (code === 13) {
+        const action = this.actionMap.get("install_addon");
+        if (action) await action();
+      }
+      return;
+    }
 
     if (code === 38 || code === 40 || code === 37 || code === 39) {
       event?.preventDefault?.();
@@ -299,9 +323,7 @@ export const PluginScreen = {
       return;
     }
 
-    if (code !== 13) {
-      return;
-    }
+    if (code !== 13) return;
     await this.activateFocused();
   },
 

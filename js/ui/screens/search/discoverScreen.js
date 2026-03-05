@@ -378,6 +378,7 @@ export const DiscoverScreen = {
       </div>
     `;
 
+    ScreenUtils.animateIn(this.container);
     ScreenUtils.indexFocusables(this.container);
     this.bindPointerEvents();
     const selector = this.lastFocusedAction

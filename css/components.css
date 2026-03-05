@@ -307,8 +307,8 @@ button:focus-visible {
 }
 
 .home-sidebar {
-  width: 128px;
-  flex: 0 0 128px;
+  width: 96px;
+  flex: 0 0 96px;
   height: 100vh;
   position: relative;
   z-index: 6;
@@ -324,8 +324,8 @@ button:focus-visible {
 }
 
 .home-sidebar.expanded {
-  width: 326px;
-  flex-basis: 326px;
+  width: 280px;
+  flex-basis: 280px;
 }
 
 .home-sidebar .focused {
@@ -1052,7 +1052,7 @@ button:focus-visible {
   max-width: 52%;
   margin-top: 12px;
   color: rgba(241, 247, 255, 0.86);
-  font-size: 18px;
+  font-size: 22px;
   line-height: 1.4;
 }
 
@@ -1068,7 +1068,7 @@ button:focus-visible {
 }
 
 .home-row {
-  margin-bottom: 26px;
+  margin-bottom: 90px;
 }
 
 .home-row-head {
@@ -1076,13 +1076,14 @@ button:focus-visible {
   align-items: center;
   justify-content: flex-start;
   gap: 14px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .home-row-title {
   margin: 0;
-  font-size: 30px;
+  font-size: 38px;
   font-weight: 700;
+  padding-bottom: 15px;
 }
 
 .home-row-see-all {
@@ -1153,10 +1154,10 @@ button:focus-visible {
 
 .home-content-card {
   flex: 0 0 calc((100% - (var(--home-track-gap) * 4)) / 5);
-  min-width: 300px;
-  max-width: 410px;
-  min-height: 390px;
-  border-radius: 52px;
+  min-width: 160px;
+  max-width: 240px;
+  min-height: 0;
+  border-radius: 28px;
   padding: 0;
   background: transparent;
   border: 2px solid transparent;
@@ -1174,12 +1175,12 @@ button:focus-visible {
   width: 100%;
   aspect-ratio: 2 / 3;
   height: auto;
-  border-radius: 50px;
+  border-radius: 26px;
 }
 
 .home-content-title {
   margin-top: 8px;
-  font-size: 14px;
+  font-size: 20px;
   font-weight: 700;
   line-height: 1.25;
   display: -webkit-box;
@@ -1203,7 +1204,7 @@ button:focus-visible {
 }
 
 .home-progress-poster {
-  height: 146px;
+  height: 240px;
   background: linear-gradient(140deg, #1a2230, #111722) center center / cover no-repeat;
   position: relative;
 }
@@ -1219,7 +1220,7 @@ button:focus-visible {
   border-radius: 999px;
   background: rgba(10, 14, 21, 0.82);
   color: rgba(241, 247, 255, 0.9);
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 700;
 }
 
@@ -1249,7 +1250,7 @@ button:focus-visible {
 .home-content-type {
   margin-top: 4px;
   color: rgba(237, 244, 251, 0.72);
-  font-size: 12px;
+  font-size: 17px;
 }
 
 .settings-shell {
@@ -1738,8 +1739,22 @@ button:focus-visible {
 }
 
 .player-controls-bottom {
-  padding-top: 62px;
-  background: linear-gradient(0deg, rgba(0, 0, 0, 0.82) 0%, rgba(0, 0, 0, 0.56) 34%, rgba(0, 0, 0, 0) 100%);
+  position: relative;
+  margin: 0 -32px -26px;
+  padding: 22px 32px 36px;
+  background:
+    linear-gradient(0deg,
+      rgba(0, 0, 0, 0.94) 0%,
+      rgba(0, 0, 0, 0.80) 22%,
+      rgba(0, 0, 0, 0.60) 44%,
+      rgba(0, 0, 0, 0.35) 64%,
+      rgba(0, 0, 0, 0.12) 82%,
+      transparent 100%),
+    linear-gradient(90deg,
+      rgba(0, 0, 0, 0.50) 0%,
+      transparent 16%,
+      transparent 84%,
+      rgba(0, 0, 0, 0.50) 100%);
 }
 
 .player-meta {
@@ -1760,11 +1775,15 @@ button:focus-visible {
 }
 
 .player-progress-track {
+  position: relative;
   width: 100%;
   height: 8px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.38);
-  overflow: hidden;
+  overflow: visible;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: height 120ms ease;
 }
 
 .player-progress-fill {
@@ -1773,6 +1792,31 @@ button:focus-visible {
   border-radius: 999px;
   background: #ffffff;
   transition: width 150ms linear;
+  pointer-events: none;
+}
+
+.player-progress-thumb {
+  position: absolute;
+  top: 50%;
+  left: 0%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+  transition: left 150ms linear, width 120ms ease, height 120ms ease;
+}
+
+.player-progress-track.focused {
+  height: 12px;
+}
+
+.player-progress-track.focused .player-progress-thumb {
+  width: 24px;
+  height: 24px;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.28), 0 2px 12px rgba(0, 0, 0, 0.6);
 }
 
 .player-controls-row {
@@ -1923,9 +1967,9 @@ button:focus-visible {
 }
 
 .series-detail-title {
-  margin: 0 0 12px;
-  font-size: 54px;
-  line-height: 1.02;
+  margin: 0 0 10px;
+  font-size: 38px;
+  line-height: 1.05;
 }
 
 .series-detail-actions {
@@ -1988,10 +2032,18 @@ button:focus-visible {
 
 .series-detail-description {
   margin: 0;
-  max-width: 930px;
-  font-size: 38px;
-  line-height: 1.32;
+  max-width: 860px;
+  font-size: 24px;
+  line-height: 1.4;
   color: rgba(240, 246, 252, 0.92);
+  transition: max-height 220ms ease, opacity 180ms ease;
+}
+
+.series-detail-description.collapsed {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .series-detail-support {
@@ -2001,8 +2053,8 @@ button:focus-visible {
 }
 
 .series-detail-meta {
-  margin: 18px 0 26px;
-  font-size: 34px;
+  margin: 12px 0 18px;
+  font-size: 22px;
   color: rgba(233, 241, 250, 0.86);
   display: flex;
   align-items: center;
@@ -2392,7 +2444,12 @@ button:focus-visible {
 }
 
 .series-cast-card {
-  flex: 0 0 188px;
+  flex: 0 0 210px;
+}
+
+.series-cast-card .movie-cast-avatar {
+  width: 194px;
+  height: 194px;
 }
 
 .movie-cast-card.focused {
@@ -2405,7 +2462,11 @@ button:focus-visible {
   width: 194px;
   height: 194px;
   border-radius: 50%;
-  background: #2a2f37 center center / cover no-repeat;
+  overflow: hidden;
+  background-color: #2a2f37;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   margin-bottom: 10px;
 }
 
@@ -2608,20 +2669,22 @@ button:focus-visible {
   flex: 0 0 180px;
   height: 70px;
   border-radius: 12px;
-  background: rgba(12, 17, 25, 0.76);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(240, 245, 252, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px;
+  padding: 10px 14px;
   box-sizing: border-box;
 }
 
 .detail-company-card img {
   max-width: 100%;
-  max-height: 40px;
+  max-height: 38px;
   object-fit: contain;
   display: block;
+  /* I loghi TMDB sono spesso bianchi: li invertiamo per renderli scuri su sfondo chiaro */
+  filter: invert(1) brightness(0.15);
 }
 
 .detail-company-card span {
@@ -2653,29 +2716,36 @@ button:focus-visible {
 }
 
 .detail-morelike-card {
-  flex: 0 0 220px;
-  border-radius: 16px;
-  padding: 10px;
-  background: rgba(12, 17, 25, 0.76);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  flex: 0 0 280px;
+  border-radius: 14px;
+  padding: 0;
+  background: rgba(13, 19, 27, 0.92);
+  border: 2px solid transparent;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .detail-morelike-card.focused {
-  transform: none;
-  border-color: rgba(245, 249, 255, 0.98);
-  box-shadow: 0 0 0 3px rgba(245, 249, 255, 0.24);
+  border-color: rgba(245, 249, 255, 0.95);
+  box-shadow: 0 0 0 3px rgba(245, 249, 255, 0.18);
 }
 
 .detail-morelike-poster {
-  height: 300px;
-  border-radius: 12px;
-  background: #1a212b center center / cover no-repeat;
+  width: 100%;
+  height: 190px;
+  background-color: #1a212b;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.detail-morelike-meta {
+  padding: 10px 12px 12px;
 }
 
 .detail-morelike-name {
-  margin-top: 8px;
-  font-size: 18px;
+  margin-top: 0;
+  font-size: 20px;
   font-weight: 700;
   line-height: 1.2;
   display: -webkit-box;
@@ -2687,8 +2757,8 @@ button:focus-visible {
 
 .detail-morelike-type {
   margin-top: 4px;
-  font-size: 14px;
-  color: rgba(230, 238, 246, 0.7);
+  font-size: 17px;
+  color: rgba(237, 244, 251, 0.72);
 }
 
 .detail-loading-shell {
@@ -3045,4 +3115,388 @@ button:focus-visible {
 .seeall-empty {
   padding: 24px 10px;
   color: rgba(224, 234, 245, 0.72);
+}
+
+/* ── Player side panels ────────────────────────────────────────────────── */
+.player-side-panel {
+  position: absolute;
+  right: 26px;
+  top: 26px;
+  width: 420px;
+  max-height: calc(100vh - 52px);
+  z-index: 35;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(10, 14, 20, 0.94);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.player-side-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 16px 10px 20px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.player-side-panel-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: rgba(245, 249, 255, 0.96);
+}
+
+.player-side-panel-close {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(235, 243, 252, 0.92);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.player-side-panel-close:hover,
+.player-side-panel-close:active {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.player-side-panel-hint {
+  padding: 8px 20px 10px;
+  font-size: 12px;
+  color: rgba(190, 210, 232, 0.55);
+  flex-shrink: 0;
+}
+
+.player-side-panel-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 10px 14px;
+  scrollbar-width: none;
+}
+
+.player-side-panel-list::-webkit-scrollbar {
+  display: none;
+}
+
+.player-side-item {
+  padding: 11px 14px;
+  border-radius: 12px;
+  margin-bottom: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: background 100ms ease, border-color 100ms ease;
+}
+
+.player-side-item:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.player-side-item.selected {
+  border-color: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.player-side-item-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(242, 248, 255, 0.94);
+  line-height: 1.25;
+}
+
+.player-side-item-sub {
+  margin-top: 3px;
+  font-size: 12px;
+  color: rgba(200, 220, 240, 0.58);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.player-side-empty {
+  padding: 20px;
+  text-align: center;
+  color: rgba(190, 210, 230, 0.55);
+  font-size: 14px;
+}
+
+.player-control-btn.active {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.player-control-btn,
+.player-side-item,
+.player-side-panel-close {
+  cursor: pointer;
+}
+
+/* ── Player resume dialog ────────────────────────────────────────────────── */
+.player-resume-dialog {
+  position: absolute;
+  bottom: 130px;
+  left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  background: rgba(10, 14, 20, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 20px;
+  padding: 20px 26px 16px;
+  min-width: 380px;
+  z-index: 50;
+  pointer-events: auto;
+  opacity: 0;
+  transition: opacity 220ms ease, transform 220ms ease;
+  backdrop-filter: blur(10px);
+}
+
+.player-resume-dialog.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.player-resume-text {
+  font-size: 20px;
+  color: rgba(242, 248, 255, 0.9);
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.player-resume-text strong {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.player-resume-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.player-resume-btn {
+  height: 44px;
+  padding: 0 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(240, 247, 255, 0.95);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.player-resume-btn--yes {
+  background: rgba(255, 255, 255, 0.92);
+  color: #0a0e14;
+  border-color: transparent;
+}
+
+.player-resume-btn--yes:hover {
+  background: #ffffff;
+}
+
+.player-resume-btn--no:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.player-resume-bar {
+  margin-top: 14px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+
+.player-resume-bar-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  transition: width 80ms linear;
+}
+
+/* ── Player toast notification ────────────────────────────────────────────── */
+.player-toast {
+  position: absolute;
+  bottom: 110px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 14, 20, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  padding: 10px 26px;
+  font-size: 18px;
+  font-weight: 600;
+  color: rgba(245, 249, 255, 0.96);
+  white-space: nowrap;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.player-toast.visible {
+  opacity: 1;
+}
+
+/* ── Home row transition animation ────────────────────────────────────────── */
+.home-row.row-focused-in {
+  animation: homeRowFocusIn 200ms ease both;
+}
+
+@keyframes homeRowFocusIn {
+  from { opacity: 0.6; transform: translateY(6px); }
+  to   { opacity: 1;   transform: translateY(0); }
+}
+
+/* ── Description row ─────────────────────────────────────────────────────── */
+.series-desc-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.series-desc-row .series-detail-description {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Player thumb proximity ───────────────────────────────────────────────── */
+.player-progress-thumb.near {
+  width: 28px !important;
+  height: 28px !important;
+  box-shadow: 0 0 0 6px rgba(255,255,255,0.22), 0 2px 14px rgba(0,0,0,0.65) !important;
+  cursor: grab;
+}
+
+.player-progress-thumb.near.dragging {
+  cursor: grabbing;
+}
+
+/* ── Seek preview tooltip ─────────────────────────────────────────────────── */
+.player-seek-preview {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  transform: translateX(-50%);
+  background: rgba(10, 14, 20, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 100ms ease;
+  z-index: 5;
+}
+
+.player-seek-preview.visible {
+  opacity: 1;
+}
+
+/* ── Episode panel state indicators ──────────────────────────────────────── */
+.player-side-item.playing {
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.85);
+}
+
+.player-side-item.watched {
+  opacity: 0.55;
+}
+
+.player-side-item.in-progress {
+  border-left: 3px solid rgba(255, 255, 255, 0.5);
+}
+
+/* ── Stream chooser error state ──────────────────────────────────────────── */
+.series-stream-error {
+  border: 1px solid rgba(220, 80, 80, 0.36);
+  background: rgba(180, 40, 40, 0.12);
+  color: rgba(255, 200, 200, 0.88);
+}
+
+/* ── Detail screen entrance animation ────────────────────────────────────── */
+@keyframes detailFadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.detail-enter .series-detail-logo,
+.detail-enter .series-detail-title,
+.detail-enter .series-detail-actions,
+.detail-enter .series-desc-row,
+.detail-enter .series-detail-meta,
+.detail-enter .series-detail-support { animation: detailFadeUp 220ms ease both; }
+
+.detail-enter .series-season-row        { animation: detailFadeUp 250ms ease both; }
+.detail-enter .series-episode-track     { animation: detailFadeUp 280ms ease both; }
+.detail-enter .series-insight-section   { animation: detailFadeUp 310ms ease both; }
+.detail-enter .detail-company-section   { animation: detailFadeUp 330ms ease both; }
+.detail-enter .detail-morelike-section  { animation: detailFadeUp 350ms ease both; }
+
+.series-stream-overlay { animation: detailFadeUp 160ms ease both; }
+
+/* ── Cast avatar — background-image inline, nessun tag img ─────────────── */
+.movie-cast-avatar.has-photo {
+  /* La foto è iniettata come background-image inline */
+  background-color: transparent;
+}
+
+/* ── Description toggle button (piccolo, grigio) ─────────────────────────── */
+.detail-desc-btn {
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 3px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.14);
+  color: rgba(235, 245, 255, 0.92);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 130ms ease;
+}
+
+.detail-desc-btn.focused {
+  background: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+/* ── Screen enter animation (used by ScreenUtils.animateIn) ──────────────── */
+@keyframes screenEnterAnim {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.screen-enter {
+  animation: screenEnterAnim 260ms ease both;
+}
+
+/* ── Detail description smooth expand/collapse ───────────────────────────── */
+.series-detail-description {
+  transition: opacity 180ms ease;
+}
+.series-detail-description.collapsing,
+.series-detail-description.expanding {
+  opacity: 0.6;
 }

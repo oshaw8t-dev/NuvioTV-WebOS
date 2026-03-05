@@ -67,6 +67,16 @@ export const WatchProgressStore = {
     return this.list().find((item) => item.contentId === wanted) || null;
   },
 
+  findOne(contentId, videoId = null) {
+    const wantedContentId = String(contentId || "").trim();
+    const wantedVideoId   = videoId == null ? null : String(videoId);
+    return this.list().find((item) => {
+      if (item.contentId !== wantedContentId) return false;
+      if (wantedVideoId === null) return item.videoId == null;
+      return String(item.videoId || "") === wantedVideoId;
+    }) || null;
+  },
+
   remove(contentId, videoId = null) {
     const wantedContentId = String(contentId || "").trim();
     const wantedVideoId = videoId == null ? null : String(videoId);

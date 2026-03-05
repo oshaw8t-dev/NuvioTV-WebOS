@@ -213,46 +213,58 @@ export const HomeScreen = {
 
   ensureMainVerticalVisibility(target) {
     const main = this.container?.querySelector(".home-main");
-    if (!main || !target || !main.contains(target)) {
-      return;
-    }
-    const rect = target.getBoundingClientRect();
-    const mainRect = main.getBoundingClientRect();
-    const pad = 14;
-    if (rect.bottom > mainRect.bottom - pad) {
-      main.scrollTop += Math.ceil(rect.bottom - mainRect.bottom + pad);
-    } else if (rect.top < mainRect.top + pad) {
-      main.scrollTop -= Math.ceil(mainRect.top + pad - rect.top);
-    }
+    if (!main || !target || !main.contains(target)) return;
+    // Centra la RIGA nella viewport usando offsetTop (funziona anche fuori dal viewport)
+    const row = target.closest(".home-row") || target;
+    const targetScroll = Math.round(
+      row.offsetTop + row.offsetHeight / 2 - main.clientHeight / 2
+    );
+    const end = Math.max(0, Math.min(main.scrollHeight - main.clientHeight, targetScroll));
+    const start = main.scrollTop;
+    if (Math.abs(end - start) < 4) return;
+    const duration = 260;
+    const startTime = performance.now();
+    if (this._mainScrollRaf) cancelAnimationFrame(this._mainScrollRaf);
+    const step = (now) => {
+      const t = Math.min((now - startTime) / duration, 1);
+      const ease = 1 - Math.pow(1 - t, 3);
+      main.scrollTop = start + (end - start) * ease;
+      if (t < 1) this._mainScrollRaf = requestAnimationFrame(step);
+      else this._mainScrollRaf = null;
+    };
+    this._mainScrollRaf = requestAnimationFrame(step);
   },
 
-  ensureTrackHorizontalVisibility(target, direction = null) {
+  ensureTrackHorizontalVisibility(target) {
     const track = target?.closest?.(".home-track");
-    if (!track) {
-      return;
-    }
-    const targetLeft = target.offsetLeft;
-    const targetRight = targetLeft + target.offsetWidth;
-    const viewLeft = track.scrollLeft;
-    const viewRight = viewLeft + track.clientWidth;
-    const step = target.offsetWidth + 18;
+    if (!track) return;
+    const trackRect  = track.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const pad = 20;
 
-    if (targetRight > viewRight) {
-      const overshoot = targetRight - viewRight;
-      const delta = direction === "right"
-        ? Math.max(step, overshoot)
-        : overshoot;
-      track.scrollLeft = Math.min(track.scrollWidth - track.clientWidth, viewLeft + delta);
-      return;
+    let delta = 0;
+    if (targetRect.right > trackRect.right - pad) {
+      delta = Math.ceil(targetRect.right - trackRect.right + pad);
+    } else if (targetRect.left < trackRect.left + pad) {
+      delta = -Math.ceil(trackRect.left + pad - targetRect.left);
     }
+    if (delta === 0) return;
 
-    if (targetLeft < viewLeft) {
-      const overshoot = viewLeft - targetLeft;
-      const delta = direction === "left"
-        ? Math.max(step, overshoot)
-        : overshoot;
-      track.scrollLeft = Math.max(0, viewLeft - delta);
-    }
+    // Scroll animato: evita il salto brusco
+    const start = track.scrollLeft;
+    const end   = start + delta;
+    const duration = 200; // ms
+    const startTime = performance.now();
+
+    const step = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Easing ease-out cubico
+      const ease = 1 - Math.pow(1 - progress, 3);
+      track.scrollLeft = start + (end - start) * ease;
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   },
 
   focusNode(current, target, direction = null) {
@@ -265,7 +277,7 @@ export const HomeScreen = {
     this.setSidebarExpanded(this.isSidebarNode(target));
     if (this.isMainNode(target)) {
       this.lastMainFocus = target;
-      this.ensureTrackHorizontalVisibility(target, direction);
+      this.ensureTrackHorizontalVisibility(target);
       this.ensureMainVerticalVisibility(target);
     }
     return true;
@@ -379,7 +391,8 @@ export const HomeScreen = {
       if (!targetRowNodes || !targetRowNodes.length) {
         return true;
       }
-      const target = targetRowNodes[Math.min(col, targetRowNodes.length - 1)] || targetRowNodes[0];
+      // Riparte sempre dal primo elemento della nuova riga
+      const target = targetRowNodes[0];
       return this.focusNode(current, target, direction) || true;
     }
 

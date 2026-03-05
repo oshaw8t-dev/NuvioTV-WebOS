@@ -122,6 +122,7 @@ export const CatalogSeeAllScreen = {
       </div>
     `;
 
+    ScreenUtils.animateIn(this.container);
     ScreenUtils.indexFocusables(this.container);
     ScreenUtils.setInitialFocus(this.container);
   },

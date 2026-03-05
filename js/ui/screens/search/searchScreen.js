@@ -306,6 +306,7 @@ export const SearchScreen = {
       </div>
     `;
 
+    ScreenUtils.animateIn(this.container);
     ScreenUtils.indexFocusables(this.container);
     this.bindSearchInputEvents();
     ScreenUtils.setInitialFocus(this.container, "#searchInput");
@@ -315,20 +316,47 @@ export const SearchScreen = {
     const input = this.container?.querySelector("#searchInput");
     if (!input || input.__boundSearchListeners) return;
     input.__boundSearchListeners = true;
+    this._searchDebounceTimer = null;
 
     input.addEventListener("input", (event) => {
       this.query = String(event.target?.value || "").trimStart();
-      if (this.query.length === 0 && this.mode !== "idle") {
-        this.mode = "idle";
+
+      // Cancella il debounce precedente
+      if (this._searchDebounceTimer) {
+        clearTimeout(this._searchDebounceTimer);
+        this._searchDebounceTimer = null;
+      }
+
+      if (this.query.length === 0) {
+        if (this.mode !== "idle") {
+          this.mode = "idle";
+          this.loadToken = (this.loadToken || 0) + 1;
+          this.renderLoading();
+          this.reloadRows();
+        }
+        return;
+      }
+
+      if (this.query.length < 2) return;
+
+      // Auto-search dopo 500ms di inattività
+      this._searchDebounceTimer = setTimeout(() => {
+        this._searchDebounceTimer = null;
+        this.mode = "search";
         this.loadToken = (this.loadToken || 0) + 1;
         this.renderLoading();
         this.reloadRows();
-      }
+      }, 500);
     });
 
     input.addEventListener("keydown", async (event) => {
       if (event.keyCode !== 13) return;
       event.preventDefault();
+      // Enter: cancella debounce e cerca subito
+      if (this._searchDebounceTimer) {
+        clearTimeout(this._searchDebounceTimer);
+        this._searchDebounceTimer = null;
+      }
       this.query = String(input.value || "").trim();
       this.mode = this.query.length >= 2 ? "search" : "idle";
       this.loadToken = (this.loadToken || 0) + 1;
@@ -392,6 +420,10 @@ export const SearchScreen = {
   },
 
   cleanup() {
+    if (this._searchDebounceTimer) {
+      clearTimeout(this._searchDebounceTimer);
+      this._searchDebounceTimer = null;
+    }
     ScreenUtils.hide(this.container);
   }
 };

@@ -14,10 +14,10 @@ class AddonRepository {
 
   canonicalizeUrl(url) {
     const trimmed = String(url || "").trim().replace(/\/+$/, "");
-    if (trimmed.endsWith("/manifest.json")) {
-      return trimmed.slice(0, -"/manifest.json".length);
-    }
-    return trimmed;
+    const decoded = trimmed.endsWith("/manifest.json")
+      ? trimmed.slice(0, -"/manifest.json".length)
+      : trimmed;
+    try { return decodeURIComponent(decoded); } catch { return decoded; }
   }
 
   getInstalledAddonUrls() {

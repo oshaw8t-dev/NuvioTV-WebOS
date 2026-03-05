@@ -9,10 +9,40 @@ function shouldUseStrictDpadGrid() {
 export const ScreenUtils = {
 
   show(container) {
-    if (!container) {
-      return;
-    }
+    if (!container) return;
+    // Fade-in: parte da opacity 0 e sale a 1 in 180ms
+    container.style.opacity = "0";
+    container.style.transition = "";
     container.style.display = "block";
+    // Due rAF garantiscono che il browser registri opacity:0 prima di animare
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        container.style.transition = "opacity 180ms ease";
+        container.style.opacity = "1";
+        const onEnd = () => {
+          container.style.transition = "";
+          container.removeEventListener("transitionend", onEnd);
+        };
+        container.addEventListener("transitionend", onEnd);
+      });
+    });
+  },
+
+  // Applica l'animazione di ingresso al primo figlio diretto del container.
+  // Va chiamata dopo aver iniettato l'HTML nella schermata.
+  animateIn(container) {
+    if (!container) return;
+    const child = container.firstElementChild;
+    if (!child) return;
+    child.classList.remove("screen-enter");
+    // Forza reflow per resettare l'animazione
+    void child.offsetWidth;
+    child.classList.add("screen-enter");
+    const onEnd = () => {
+      child.classList.remove("screen-enter");
+      child.removeEventListener("animationend", onEnd);
+    };
+    child.addEventListener("animationend", onEnd);
   },
 
   hide(container) {

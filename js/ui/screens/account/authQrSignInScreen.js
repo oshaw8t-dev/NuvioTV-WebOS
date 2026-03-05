@@ -103,7 +103,7 @@ export const AuthQrSignInScreen = {
     pollInterval = setInterval(async () => {
       const status = await QrLoginService.poll(code, deviceNonce);
 
-      if (status === "approved") {
+      if (status === "completed") {
         this.setStatus("Approved. Finishing login...");
         clearInterval(pollInterval);
 

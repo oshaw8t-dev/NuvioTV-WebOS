@@ -5,8 +5,8 @@
   "type": "web",
   "main": "index.html",
   "title": "Nuvio",
-  "icon": "assets/images/nuviotv.png",
-  "largeIcon": "assets/images/nuviotv.png",
+  "icon": "assets/brand/app_logo_mark.png",
+  "largeIcon": "assets/brand/app_logo_mark.png",
   "resolution": "1920x1080",
   "transparent": false,
   "requiredPermissions": [

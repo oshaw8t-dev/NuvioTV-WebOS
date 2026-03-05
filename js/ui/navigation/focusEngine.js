@@ -113,12 +113,109 @@ function buildNormalizedEvent(event) {
   };
 }
 
+function makeFakeEnterEvent() {
+  return {
+    key: "Enter",
+    code: "Enter",
+    target: null,
+    altKey: false,
+    ctrlKey: false,
+    shiftKey: false,
+    metaKey: false,
+    repeat: false,
+    defaultPrevented: false,
+    keyCode: 13,
+    which: 13,
+    originalKeyCode: 13,
+    preventDefault: () => {},
+    stopPropagation: () => {},
+    stopImmediatePropagation: () => {}
+  };
+}
+
+function isNativeInputElement(el) {
+  const tag = String(el?.tagName || "").toUpperCase();
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+}
+
 export const FocusEngine = {
   lastBackHandledAt: 0,
 
   init() {
     this.boundHandleKey = this.handleKey.bind(this);
     document.addEventListener("keydown", this.boundHandleKey, true);
+    this.initClickSupport();
+  },
+
+  initClickSupport() {
+    document.addEventListener("click", async (event) => {
+      // Se il click è su un input nativo, lascia che il browser gestisca tutto
+      // (su webOS aprirà la tastiera di sistema)
+      if (isNativeInputElement(event.target)) {
+        event.target.focus();
+        return;
+      }
+
+      const el = event.target.closest("[data-zone], [data-action], .focusable");
+      if (!el) return;
+
+      // Anche se l'elemento trovato col closest è un input, lascia stare
+      if (isNativeInputElement(el)) {
+        el.focus();
+        return;
+      }
+
+      const screen = Router.getCurrentScreen();
+      if (!screen) return;
+
+      const hasZone = el.hasAttribute("data-zone");
+      const hasAction = el.hasAttribute("data-action");
+
+      if (hasZone) {
+        // Pattern zone (plugin, settings): applyFocus + activateFocused o onKeyDown
+        const zone = String(el.dataset.zone || "");
+
+        if (zone === "rail") {
+          screen.focusZone = "rail";
+          if (el.dataset.railIndex !== undefined) screen.railIndex = Number(el.dataset.railIndex);
+        } else if (zone === "nav") {
+          screen.focusZone = "nav";
+          if (el.dataset.navIndex !== undefined) screen.navIndex = Number(el.dataset.navIndex);
+        } else if (zone === "panel") {
+          screen.focusZone = "panel";
+          if (el.dataset.panelIndex !== undefined) screen.panelIndex = Number(el.dataset.panelIndex);
+        } else {
+          screen.focusZone = "content";
+          if (el.dataset.row !== undefined) screen.contentRow = Number(el.dataset.row);
+          if (el.dataset.col !== undefined) screen.contentCol = Number(el.dataset.col);
+          if (el.dataset.rowIndex !== undefined) screen.rowIndex = Number(el.dataset.rowIndex);
+          if (el.dataset.colIndex !== undefined) screen.colIndex = Number(el.dataset.colIndex);
+        }
+
+        if (typeof screen.applyFocus === "function") screen.applyFocus();
+
+        // Usa activateFocused se disponibile, altrimenti simula Enter via onKeyDown
+        if (typeof screen.activateFocused === "function") {
+          await screen.activateFocused();
+        } else if (typeof screen.onKeyDown === "function") {
+          await screen.onKeyDown(makeFakeEnterEvent());
+        }
+        return;
+      }
+
+      if (hasAction || el.classList.contains("focusable")) {
+        // Pattern action (home, library, search): setta focused e simula Enter
+        const allFocusable = document.querySelectorAll(".focusable");
+        allFocusable.forEach((node) => node.classList.remove("focused"));
+        el.classList.add("focused");
+        el.focus();
+
+        if (typeof screen.onKeyDown === "function") {
+          await screen.onKeyDown(makeFakeEnterEvent());
+        }
+        return;
+      }
+    }, true);
   },
 
   handleKey(event) {
@@ -149,6 +246,19 @@ export const FocusEngine = {
       }
       Router.back();
       return;
+    }
+
+    // CRITICO: blocca il click sintetico che il browser genera dopo un keydown Enter.
+    // Senza questo, ogni pressione del tasto centrale del telecomando esegue
+    // l'azione DUE VOLTE: una dal keydown e una dal click sintetico successivo,
+    // causando glitch (toggle che si apre e chiude subito) e apertura indesiderata
+    // del chooser sorgenti (il secondo run trova playDefault focalizzato dopo
+    // che il primo run ha ri-renderizzato la schermata).
+    const rawCode = Number(event?.keyCode || 0);
+    if (rawCode === 13 || normalizedEvent.keyCode === 13) {
+      if (typeof event.preventDefault === "function") {
+        event.preventDefault();
+      }
     }
 
     const currentScreen = Router.getCurrentScreen();

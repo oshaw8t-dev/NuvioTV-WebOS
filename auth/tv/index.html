@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuvio — Login TV</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0f0f0f; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .card { background: #1a1a1a; border-radius: 16px; padding: 40px; width: 100%; max-width: 400px; text-align: center; }
+        .logo { font-size: 2rem; font-weight: bold; color: #a855f7; margin-bottom: 8px; }
+        .subtitle { color: #888; margin-bottom: 32px; font-size: 0.9rem; }
+        .code-badge { background: #2a2a2a; border-radius: 8px; padding: 12px; margin-bottom: 24px; font-family: monospace; font-size: 1.2rem; color: #a855f7; }
+        input { width: 100%; padding: 12px 16px; background: #2a2a2a; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 1rem; margin-bottom: 12px; outline: none; }
+        input:focus { border-color: #a855f7; }
+        button { width: 100%; padding: 14px; background: #a855f7; border: none; border-radius: 8px; color: #fff; font-size: 1rem; font-weight: bold; cursor: pointer; }
+        button:hover { background: #9333ea; }
+        button:disabled { background: #555; cursor: not-allowed; }
+        .message { margin-top: 16px; padding: 12px; border-radius: 8px; font-size: 0.9rem; display: none; }
+        .message.success { background: #1a3a1a; color: #4ade80; display: block; }
+        .message.error { background: #3a1a1a; color: #f87171; display: block; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="logo">NUVIO</div>
+        <div class="subtitle">Conferma il login sulla tua TV</div>
+        <div class="code-badge" id="codeDisplay">Caricamento...</div>
+        <input type="email" id="email" placeholder="Email" />
+        <input type="password" id="password" placeholder="Password" />
+        <button id="loginBtn" onclick="doLogin()">Accedi e conferma</button>
+        <div class="message" id="message"></div>
+    </div>
+
+<script>
+    const SUPABASE_URL = 'https://xuonpifwlrutnnzisovs.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1b25waWZ3bHJ1dG5uemlzb3ZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMzU5MTEsImV4cCI6MjA4NzYxMTkxMX0.3d_GgCEcx3D1qq0v83ozJCEQSz4JjqtGD3t_CL395qU';
+
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    document.getElementById('codeDisplay').textContent = code ? `Codice: ${code}` : 'Codice non trovato';
+
+    function showMessage(text, type) {
+        const el = document.getElementById('message');
+        el.textContent = text;
+        el.className = `message ${type}`;
+    }
+
+    async function doLogin() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const btn = document.getElementById('loginBtn');
+
+        if (!code) return showMessage('Codice mancante nell\'URL', 'error');
+        if (!email || !password) return showMessage('Inserisci email e password', 'error');
+
+        btn.disabled = true;
+        btn.textContent = 'Accesso in corso...';
+
+        try {
+            // 1. Login con email/password
+            const authRes = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY },
+                body: JSON.stringify({ email, password })
+            });
+            const authData = await authRes.json();
+            if (!authRes.ok) throw new Error(authData.error_description || authData.msg || 'Login fallito');
+
+            const accessToken = authData.access_token;
+
+            // 2. Approva la sessione TV
+            const approveRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/approve_tv_login_session`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    apikey: SUPABASE_ANON_KEY,
+                    Authorization: `Bearer ${accessToken}`
+                },
+                body: JSON.stringify({
+                    p_code: code,
+                    p_access_token: authData.access_token,
+                    p_refresh_token: authData.refresh_token
+                })
+            });
+
+            if (!approveRes.ok) {
+                const err = await approveRes.text();
+                throw new Error(err || 'Approvazione fallita');
+            }
+
+            showMessage('✓ Login confermato! Torna alla TV.', 'success');
+            btn.textContent = 'Fatto!';
+
+        } catch (err) {
+            showMessage(err.message, 'error');
+            btn.disabled = false;
+            btn.textContent = 'Accedi e conferma';
+        }
+    }
+</script>
+</body>
+</html>
