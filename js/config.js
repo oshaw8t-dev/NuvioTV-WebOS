@@ -4,7 +4,7 @@ export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 export const TMDB_API_KEY = '3af97fc09118b424c8ce185438febc27';
 export const TMDB_READ_ACCESS_TOKEN = '';
 
-export const TV_LOGIN_REDIRECT_BASE_URL = 'https://oshaw8t-dev.github.io/NuvioTV-WebOS/addon-manager';
+export const TV_LOGIN_REDIRECT_BASE_URL = 'https://oshaw8t-dev.github.io/NuvioTV-WebOS';
 
 export const APP_VERSION = '0.1.0';
 export const DEBUG = true;
