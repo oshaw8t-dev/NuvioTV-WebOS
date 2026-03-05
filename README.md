@@ -29,7 +29,7 @@ It acts as a client-side interface that can integrate with the **Stremio addon e
 This project is a webOS port / re-implementation inspired by the original Android TV project:
 
 - **tapframe/NuvioTV** (Official Android TV Repository)  
-  https://github.com/tapframe/NuvioTV :contentReference[oaicite:1]{index=1}
+  https://github.com/tapframe/NuvioTV
 
 All credits for the original Android TV implementation go to **tapframe** and contributors.  
 This webOS version is **not affiliated** with tapframe and is provided as an independent community effort.
@@ -43,7 +43,7 @@ This project is currently in early beta. Builds may be unstable or incomplete.
 
 Precompiled `.ipk` packages will be available in the **Releases** section of this repository:
 
-👉 https://github.com/WhiteGiso/NuvioTV-WebOS/releases
+👉 https://github.com/oshaw8t-dev/NuvioTV-WebOS/releases
 
 Download the latest `.ipk` file compatible with your webOS TV.
 
@@ -82,11 +82,11 @@ Using your computer:
 2. Connect your TV:
    ```bash
    ares-setup-device
+   ```
 3. Install the app:
    ```bash
-   ares-install NuvioTV_webOS.ipk
-
-Typical webOS development workflow uses `appinfo.json` in the app root. :contentReference[oaicite:2]{index=2}
+   ares-install com.nuvio.lg_1.0.1_all.ipk --device tv
+   ```
 
 ## Development (LG webOS)
 
@@ -95,8 +95,12 @@ Typical webOS development workflow uses `appinfo.json` in the app root. :content
 - A webOS TV device in Developer Mode (or emulator)
 
 ### Run locally
-- Is needed `index.html` with a local web server and test in browser first
-- Then package and install to webOS TV (documentation links in `/docs` or README updates)
+- Use `index.html` with a local web server and test in browser first
+- Then package and install to webOS TV:
+  ```bash
+  ares-package . --no-minify
+  ares-install --device tv com.nuvio.lg_1.0.1_all.ipk
+  ```
 
 ## Legal & Disclaimer
 
@@ -105,24 +109,21 @@ It is intended for content the user owns or is otherwise authorized to access.
 
 This project is not affiliated with third-party extensions or content providers and does not host, store, or distribute any media content.
 
-(For the upstream Android TV project legal page, see tapframe/NuvioTV.) :contentReference[oaicite:3]{index=3}
+(For the upstream Android TV project legal page, see tapframe/NuvioTV.)
 
 ## License
 
-- Upstream Android TV project: see **tapframe/NuvioTV** repository license. :contentReference[oaicite:4]{index=4}
-- This webOS repository: **(choose and state your license here)**  
-  - If you include upstream code/assets: keep GPL-3.0 compatibility.
-  - If it’s a clean-room re-implementation: you may choose another license, while still keeping proper attribution.
+- Upstream Android TV project: see **tapframe/NuvioTV** repository license.
+- This webOS repository: **GPL-3.0**
 
 <!-- MARKDOWN LINKS & IMAGES -->
-<!-- TODO: replace YOUR_GITHUB_USER and YOUR_REPO with your actual repo -->
-[contributors-shield]: https://img.shields.io/github/contributors/YOUR_GITHUB_USER/YOUR_REPO.svg?style=for-the-badge
-[contributors-url]: https://github.com/YOUR_GITHUB_USER/YOUR_REPO/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/YOUR_GITHUB_USER/YOUR_REPO.svg?style=for-the-badge
-[forks-url]: https://github.com/YOUR_GITHUB_USER/YOUR_REPO/network/members
-[stars-shield]: https://img.shields.io/github/stars/YOUR_GITHUB_USER/YOUR_REPO.svg?style=for-the-badge
-[stars-url]: https://github.com/YOUR_GITHUB_USER/YOUR_REPO/stargazers
-[issues-shield]: https://img.shields.io/github/issues/YOUR_GITHUB_USER/YOUR_REPO.svg?style=for-the-badge
-[issues-url]: https://github.com/YOUR_GITHUB_USER/YOUR_REPO/issues
-[license-shield]: https://img.shields.io/github/license/YOUR_GITHUB_USER/YOUR_REPO.svg?style=for-the-badge
+[contributors-shield]: https://img.shields.io/github/contributors/oshaw8t-dev/NuvioTV-WebOS.svg?style=for-the-badge
+[contributors-url]: https://github.com/oshaw8t-dev/NuvioTV-WebOS/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/oshaw8t-dev/NuvioTV-WebOS.svg?style=for-the-badge
+[forks-url]: https://github.com/oshaw8t-dev/NuvioTV-WebOS/network/members
+[stars-shield]: https://img.shields.io/github/stars/oshaw8t-dev/NuvioTV-WebOS.svg?style=for-the-badge
+[stars-url]: https://github.com/oshaw8t-dev/NuvioTV-WebOS/stargazers
+[issues-shield]: https://img.shields.io/github/issues/oshaw8t-dev/NuvioTV-WebOS.svg?style=for-the-badge
+[issues-url]: https://github.com/oshaw8t-dev/NuvioTV-WebOS/issues
+[license-shield]: https://img.shields.io/github/license/oshaw8t-dev/NuvioTV-WebOS.svg?style=for-the-badge
 [license-url]: ./LICENSE
