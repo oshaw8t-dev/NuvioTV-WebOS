@@ -11,7 +11,7 @@
   </p>
 
   <p>
-    ⚠️ <b>Status: BETA</b> — experimental and may be unstable.
+    <b>Status: BETA</b> — experimental and may be unstable.
   </p>
 
 </div>
@@ -36,14 +36,14 @@ This webOS version is **not affiliated** with tapframe and is provided as an ind
 
 ## Installation (LG webOS)
 
-⚠️ **Status: Beta**  
+**Status: Beta**  
 This project is currently in early beta. Builds may be unstable or incomplete.
 
 ### Download
 
 Precompiled `.ipk` packages will be available in the **Releases** section of this repository:
 
-👉 https://github.com/oshaw8t-dev/NuvioTV-WebOS/releases
+https://github.com/oshaw8t-dev/NuvioTV-WebOS/releases
 
 Download the latest `.ipk` file compatible with your webOS TV.
 
