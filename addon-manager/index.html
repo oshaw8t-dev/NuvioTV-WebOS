@@ -11,21 +11,32 @@
         .subtitle { color: #888; font-size: 0.85rem; margin-bottom: 24px; }
         .section-title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; color: #666; margin-bottom: 12px; }
         .addon-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
-        .addon-item { background: #1a1a1a; border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; }
+        .addon-item { background: #1a1a1a; border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .addon-info { flex: 1; min-width: 0; }
         .addon-name { font-size: 0.95rem; font-weight: 500; }
-        .addon-url { font-size: 0.7rem; color: #666; margin-top: 2px; word-break: break-all; }
-        .remove-btn { background: #3a1a1a; border: none; color: #f87171; border-radius: 6px; padding: 6px 12px; font-size: 0.8rem; cursor: pointer; flex-shrink: 0; margin-left: 12px; }
+        .addon-url {
+            font-size: 0.7rem;
+            color: #555;
+            margin-top: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+        .remove-btn { background: #3a1a1a; border: none; color: #f87171; border-radius: 6px; padding: 6px 12px; font-size: 0.8rem; cursor: pointer; flex-shrink: 0; }
         .add-section { background: #1a1a1a; border-radius: 10px; padding: 16px; margin-bottom: 24px; }
         .add-section h3 { font-size: 0.9rem; margin-bottom: 12px; color: #ccc; }
         input { width: 100%; padding: 10px 14px; background: #2a2a2a; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 0.9rem; margin-bottom: 10px; outline: none; }
         input:focus { border-color: #a855f7; }
         .add-btn { width: 100%; padding: 12px; background: #a855f7; border: none; border-radius: 8px; color: #fff; font-size: 0.95rem; font-weight: bold; cursor: pointer; }
+        .add-btn:disabled { background: #555; cursor: not-allowed; }
         .save-btn { width: 100%; padding: 14px; background: #16a34a; border: none; border-radius: 10px; color: #fff; font-size: 1rem; font-weight: bold; cursor: pointer; margin-bottom: 12px; }
         .save-btn:disabled { background: #555; cursor: not-allowed; }
         .message { padding: 12px; border-radius: 8px; font-size: 0.9rem; margin-bottom: 12px; display: none; }
         .message.success { background: #1a3a1a; color: #4ade80; display: block; }
         .message.error { background: #3a1a1a; color: #f87171; display: block; }
         .loading { text-align: center; color: #666; padding: 40px; }
+        .empty { color: #666; font-size: 0.85rem; padding: 8px 0; }
     </style>
 </head>
 <body>
@@ -39,7 +50,11 @@
 
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
+
+    // Stato globale
     let addonUrls = [];
+    let addonNames = {};   // cache nomi: url -> nome
+    let renderPending = false;
 
     async function rpc(fn, body) {
         const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
@@ -53,14 +68,94 @@
     }
 
     async function fetchManifestName(url) {
+        if (addonNames[url]) return addonNames[url];
         try {
             const clean = url.replace(/\/+$/, '').replace(/\/manifest\.json$/, '');
             const res = await fetch(`${clean}/manifest.json`);
             const data = await res.json();
-            return data.name || url;
+            const name = data.name || extractDomain(url);
+            addonNames[url] = name;
+            return name;
+        } catch {
+            const fallback = extractDomain(url);
+            addonNames[url] = fallback;
+            return fallback;
+        }
+    }
+
+    function extractDomain(url) {
+        try {
+            return new URL(url).hostname;
         } catch {
             return url;
         }
+    }
+
+    function formatDisplayUrl(url) {
+        try {
+            const u = new URL(url);
+            // Mostra solo host + inizio path, max 40 caratteri
+            const short = u.hostname + (u.pathname !== '/' ? u.pathname : '');
+            return short.length > 50 ? short.slice(0, 47) + '...' : short;
+        } catch {
+            return url.length > 50 ? url.slice(0, 47) + '...' : url;
+        }
+    }
+
+    // Render sincrono della lista (senza attendere i manifest)
+    function renderList() {
+        const addonList = document.getElementById('addonList');
+        if (!addonList) return;
+
+        if (addonUrls.length === 0) {
+            addonList.innerHTML = '<div class="empty">Nessun addon installato</div>';
+            return;
+        }
+
+        addonList.innerHTML = addonUrls.map((url, i) => {
+            const name = addonNames[url] || extractDomain(url);
+            const displayUrl = formatDisplayUrl(url);
+            return `
+                <div class="addon-item">
+                    <div class="addon-info">
+                        <div class="addon-name">${escapeHtml(name)}</div>
+                        <div class="addon-url" title="${escapeHtml(url)}">${escapeHtml(displayUrl)}</div>
+                    </div>
+                    <button class="remove-btn" onclick="removeAddon(${i})">Rimuovi</button>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    // Fetch nomi in background e aggiorna la lista
+    async function refreshNames() {
+        if (renderPending) return;
+        renderPending = true;
+        await Promise.all(addonUrls.map(url => fetchManifestName(url)));
+        renderPending = false;
+        renderList();
+    }
+
+    function buildAppHtml() {
+        return `
+            <div class="message" id="message"></div>
+            <div class="section-title">Addon installati</div>
+            <div class="addon-list" id="addonList"></div>
+            <div class="add-section">
+                <h3>Aggiungi addon</h3>
+                <input type="url" id="newUrl" placeholder="https://example.com/manifest.json" autocomplete="off" />
+                <button class="add-btn" id="addBtn" onclick="addAddon()">Aggiungi</button>
+            </div>
+            <button class="save-btn" id="saveBtn" onclick="save()">✓ Salva sulla TV</button>
+        `;
     }
 
     function showMessage(text, type) {
@@ -80,65 +175,46 @@
             const result = await rpc('get_addon_sync', { p_code: code });
             const row = Array.isArray(result) ? result[0] : result;
             if (!row) throw new Error('Sessione non trovata o scaduta');
-            addonUrls = Array.isArray(row.addon_urls) ? row.addon_urls : [];
+            addonUrls = Array.isArray(row.addon_urls) ? [...row.addon_urls] : [];
         } catch (e) {
             document.getElementById('app').innerHTML = `<div class="loading">Errore: ${e.message}</div>`;
             return;
         }
 
-        render();
-    }
-
-    async function render() {
-        // Recupera i nomi degli addon
-        const names = await Promise.all(addonUrls.map(fetchManifestName));
-
-        const addonItems = addonUrls.map((url, i) => `
-            <div class="addon-item">
-                <div>
-                    <div class="addon-name">${names[i]}</div>
-                    <div class="addon-url">${url}</div>
-                </div>
-                <button class="remove-btn" onclick="removeAddon(${i})">Rimuovi</button>
-            </div>
-        `).join('') || '<div style="color:#666;font-size:0.85rem;">Nessun addon installato</div>';
-
-        document.getElementById('app').innerHTML = `
-            <div class="message" id="message"></div>
-
-            <div class="section-title">Addon installati</div>
-            <div class="addon-list" id="addonList">${addonItems}</div>
-
-            <div class="add-section">
-                <h3>Aggiungi addon</h3>
-                <input type="text" id="newUrl" placeholder="https://example.com/manifest.json" />
-                <button class="add-btn" onclick="addAddon()">Aggiungi</button>
-            </div>
-
-            <button class="save-btn" id="saveBtn" onclick="save()">✓ Salva sulla TV</button>
-        `;
+        document.getElementById('app').innerHTML = buildAppHtml();
+        renderList();
+        refreshNames(); // carica i nomi in background
     }
 
     function removeAddon(index) {
         addonUrls.splice(index, 1);
-        render();
+        renderList();
+        refreshNames();
     }
 
     function addAddon() {
         const input = document.getElementById('newUrl');
-        const url = input.value.trim().replace(/\/manifest\.json$/, '').replace(/\/+$/, '');
+        if (!input) return;
+        const raw = input.value.trim();
+        const url = raw.replace(/\/manifest\.json$/, '').replace(/\/+$/, '');
         if (!url) return;
+
         if (addonUrls.includes(url)) {
-            alert('Addon già presente');
+            showMessage('Addon già presente nella lista.', 'error');
             return;
         }
+
         addonUrls.push(url);
         input.value = '';
-        render();
+        renderList();
+
+        // Fetch nome in background senza bloccare
+        fetchManifestName(url).then(() => renderList());
     }
 
     async function save() {
         const btn = document.getElementById('saveBtn');
+        if (!btn) return;
         btn.disabled = true;
         btn.textContent = 'Salvataggio...';
         try {

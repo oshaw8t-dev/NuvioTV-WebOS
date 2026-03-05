@@ -134,9 +134,14 @@ export const SyncCodeScreen = {
         const status = row?.status || "pending";
 
         if (status === "updated") {
-          const syncResult = await supabaseRpc("get_addon_sync", { p_code: this.sessionCode });
-          const syncRow = Array.isArray(syncResult) ? syncResult[0] : syncResult;
-          const newUrls = Array.isArray(syncRow?.addon_urls) ? syncRow.addon_urls : [];
+          // Prova a leggere addon_urls direttamente da poll_addon_sync
+          // se non disponibile, fa una seconda chiamata get_addon_sync
+          let newUrls = Array.isArray(row?.addon_urls) ? row.addon_urls : null;
+          if (!newUrls) {
+            const syncResult = await supabaseRpc("get_addon_sync", { p_code: this.sessionCode });
+            const syncRow = Array.isArray(syncResult) ? syncResult[0] : syncResult;
+            newUrls = Array.isArray(syncRow?.addon_urls) ? syncRow.addon_urls : [];
+          }
 
           await addonRepository.setAddonOrder(newUrls);
           this.stopIntervals();
