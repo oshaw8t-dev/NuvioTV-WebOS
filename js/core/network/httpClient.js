@@ -1,6 +1,18 @@
 import { SessionStore } from "../storage/sessionStore.js";
 
+function sanitizeUrl(raw) {
+  try {
+    // Encoda solo i caratteri non validi nell'URL senza toccare quelli già encodati
+    // Rimpiazza caratteri illegali comuni: | { } ^ ` spazio
+    return String(raw).replace(/[|{}^`\s]/g, (c) => encodeURIComponent(c));
+  } catch {
+    return raw;
+  }
+}
+
 export async function httpRequest(url, options = {}) {
+
+  const safeUrl = sanitizeUrl(url);
 
   const headers = {
     "Content-Type": "application/json",
@@ -11,7 +23,7 @@ export async function httpRequest(url, options = {}) {
     headers["Authorization"] = `Bearer ${SessionStore.accessToken}`;
   }
 
-  const response = await fetch(url, {
+  const response = await fetch(safeUrl, {
     ...options,
     headers
   });

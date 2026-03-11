@@ -14,10 +14,10 @@ class AddonRepository {
 
   canonicalizeUrl(url) {
     const trimmed = String(url || "").trim().replace(/\/+$/, "");
-    const decoded = trimmed.endsWith("/manifest.json")
+    const clean = trimmed.endsWith("/manifest.json")
       ? trimmed.slice(0, -"/manifest.json".length)
       : trimmed;
-    try { return decodeURIComponent(decoded); } catch { return decoded; }
+    return clean;
   }
 
   getInstalledAddonUrls() {
@@ -45,13 +45,44 @@ class AddonRepository {
       return { status: "success", data: cached };
     }
 
-    const fallback = this.getBuiltinFallbackManifest(cleanBaseUrl);
-    if (fallback) {
-      this.manifestCache.set(cleanBaseUrl, fallback);
-      return { status: "success", data: fallback };
+    const builtin = this.getBuiltinFallbackManifest(cleanBaseUrl);
+    if (builtin) {
+      this.manifestCache.set(cleanBaseUrl, builtin);
+      return { status: "success", data: builtin };
     }
 
-    return result;
+    // Fallback generico: crea uno stub minimale dall'URL così l'addon
+    // appare nella lista ed è interrogabile per stream/meta
+    const stub = this.buildStubAddon(cleanBaseUrl);
+    this.manifestCache.set(cleanBaseUrl, stub);
+    return { status: "success", data: stub };
+  }
+
+  buildStubAddon(baseUrl) {
+    let name = "Unknown Addon";
+    try {
+      const host = new URL(baseUrl).hostname;
+      name = host.replace(/^www\./, "");
+    } catch { /* usa default */ }
+
+    return {
+      id: baseUrl,
+      name,
+      displayName: name,
+      version: "0.0.0",
+      description: null,
+      logo: null,
+      baseUrl,
+      types: ["movie", "series"],
+      rawTypes: ["movie", "series"],
+      // Dichiara tutte le risorse standard così viene interrogato per stream e meta
+      resources: [
+        { name: "stream", types: ["movie", "series"], idPrefixes: null },
+        { name: "meta", types: ["movie", "series"], idPrefixes: null },
+        { name: "catalog", types: ["movie", "series"], idPrefixes: null }
+      ],
+      catalogs: []
+    };
   }
 
   async getInstalledAddons() {

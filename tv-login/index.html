@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuvio — Accesso TV</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #0a0a0f;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .card {
+            background: #13131a;
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 20px;
+            padding: 36px 32px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 28px;
+        }
+        .logo-icon {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, #a855f7, #6366f1);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+        }
+        .logo-text { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.02em; }
+
+        .kicker {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: #a855f7;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.02em; }
+        .desc { color: #666; font-size: 0.88rem; line-height: 1.5; margin-bottom: 28px; }
+
+        .code-badge {
+            display: inline-block;
+            background: rgba(168, 85, 247, 0.12);
+            border: 1px solid rgba(168, 85, 247, 0.25);
+            color: #c084fc;
+            font-family: monospace;
+            font-size: 0.9rem;
+            padding: 4px 12px;
+            border-radius: 8px;
+            margin-bottom: 28px;
+        }
+
+        label { display: block; font-size: 0.78rem; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 7px; }
+
+        input {
+            width: 100%;
+            padding: 13px 16px;
+            background: #1e1e2a;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 1rem;
+            margin-bottom: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus { border-color: #a855f7; }
+        input::placeholder { color: #444; }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #a855f7, #6366f1);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 4px;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+        .btn:hover { opacity: 0.92; }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        .error {
+            background: rgba(248, 113, 113, 0.1);
+            border: 1px solid rgba(248, 113, 113, 0.25);
+            color: #fca5a5;
+            border-radius: 10px;
+            padding: 11px 14px;
+            font-size: 0.88rem;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .error.visible { display: block; }
+
+        .success-view { display: none; text-align: center; }
+        .success-view.visible { display: block; }
+        .form-view.hidden { display: none; }
+
+        .success-icon { font-size: 3.5rem; margin-bottom: 16px; display: block; }
+        .success-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 10px; }
+        .success-desc { color: #666; font-size: 0.9rem; line-height: 1.6; }
+
+        .no-code { text-align: center; color: #666; font-size: 0.9rem; padding: 12px 0; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="logo">
+        <div class="logo-icon">▶</div>
+        <span class="logo-text">Nuvio</span>
+    </div>
+
+    <div class="form-view" id="formView">
+        <div class="kicker">TV Login</div>
+        <h1>Autorizza la TV</h1>
+        <p class="desc">Inserisci le tue credenziali per completare l'accesso sulla tua TV.</p>
+
+        <div id="codeBadge" class="code-badge" style="display:none"></div>
+
+        <div class="error" id="errorMsg"></div>
+
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="tu@esempio.com" autocomplete="email" />
+
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
+
+        <button class="btn" id="loginBtn" onclick="doLogin()">Accedi e autorizza la TV</button>
+
+        <p id="noCode" class="no-code" style="display:none">
+            ⚠️ Codice TV mancante nell'URL.<br>Riscansiona il QR dalla TV.
+        </p>
+    </div>
+
+    <div class="success-view" id="successView">
+        <span class="success-icon">✅</span>
+        <div class="success-title">TV autorizzata!</div>
+        <p class="success-desc">Torna alla TV — il login si completerà automaticamente entro pochi secondi.</p>
+    </div>
+</div>
+
+<script>
+    const SUPABASE_URL  = 'https://xuonpifwlrutnnzisovs.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1b25waWZ3bHJ1dG5uemlzb3ZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMzU5MTEsImV4cCI6MjA4NzYxMTkxMX0.3d_GgCEcx3D1qq0v83ozJCEQSz4JjqtGD3t_CL395qU';
+
+    const params = new URLSearchParams(window.location.search);
+    const code   = params.get('code');
+
+    if (code) {
+        const badge = document.getElementById('codeBadge');
+        badge.textContent = 'Codice: ' + code;
+        badge.style.display = 'inline-block';
+    } else {
+        document.getElementById('loginBtn').style.display = 'none';
+        document.querySelectorAll('label, input').forEach(el => el.style.display = 'none');
+        document.getElementById('noCode').style.display = 'block';
+    }
+
+    document.querySelectorAll('input').forEach(inp => {
+        inp.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+    });
+
+    function showError(msg) {
+        const el = document.getElementById('errorMsg');
+        el.textContent = msg;
+        el.classList.add('visible');
+    }
+    function hideError() {
+        document.getElementById('errorMsg').classList.remove('visible');
+    }
+
+    async function doLogin() {
+        if (!code) return;
+        const email    = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        if (!email || !password) { showError('Inserisci email e password.'); return; }
+
+        hideError();
+        const btn = document.getElementById('loginBtn');
+        btn.disabled = true;
+        btn.textContent = 'Accesso in corso…';
+
+        try {
+            // 1. Login email + password sul nostro Supabase
+            const authRes = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON },
+                body: JSON.stringify({ email, password })
+            });
+            const authData = await authRes.json();
+            if (!authRes.ok) throw new Error(authData?.error_description || authData?.msg || 'Credenziali non valide');
+            const userToken = authData.access_token;
+            if (!userToken) throw new Error('Token di sessione mancante');
+
+            btn.textContent = 'Autorizzazione TV…';
+
+            // 2. Prova edge function di approvazione
+            const approveRes = await fetch(`${SUPABASE_URL}/functions/v1/tv-logins-approve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON, Authorization: `Bearer ${userToken}` },
+                body: JSON.stringify({ code })
+            });
+
+            if (!approveRes.ok) {
+                const txt = await approveRes.text();
+                if (approveRes.status === 404) {
+                    await approveViaRpc(code, userToken);
+                } else {
+                    throw new Error(txt || `Errore approvazione (${approveRes.status})`);
+                }
+            }
+
+            showSuccess();
+        } catch (e) {
+            btn.disabled = false;
+            btn.textContent = 'Accedi e autorizza la TV';
+            showError(e.message || 'Errore sconosciuto');
+        }
+    }
+
+    async function approveViaRpc(code, userToken) {
+        const candidates = ['approve_tv_login_session', 'approve_tv_login', 'confirm_tv_login_session', 'complete_tv_login_session'];
+        let lastErr = null;
+        for (const fn of candidates) {
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON, Authorization: `Bearer ${userToken}` },
+                body: JSON.stringify({ p_code: code })
+            });
+            if (res.ok) return;
+            const msg = (await res.text()).toLowerCase();
+            if (msg.includes('could not find') || msg.includes('42883') || res.status === 404) { lastErr = new Error(msg); continue; }
+            throw new Error(msg);
+        }
+        throw lastErr || new Error('Funzione di approvazione non trovata nel backend');
+    }
+
+    function showSuccess() {
+        document.getElementById('formView').classList.add('hidden');
+        document.getElementById('successView').classList.add('visible');
+    }
+</script>
+</body>
+</html>

@@ -14,15 +14,7 @@
         .addon-item { background: #1a1a1a; border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
         .addon-info { flex: 1; min-width: 0; }
         .addon-name { font-size: 0.95rem; font-weight: 500; }
-        .addon-url {
-            font-size: 0.7rem;
-            color: #555;
-            margin-top: 3px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 100%;
-        }
+        .addon-url { font-size: 0.7rem; color: #555; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
         .remove-btn { background: #3a1a1a; border: none; color: #f87171; border-radius: 6px; padding: 6px 12px; font-size: 0.8rem; cursor: pointer; flex-shrink: 0; }
         .add-section { background: #1a1a1a; border-radius: 10px; padding: 16px; margin-bottom: 24px; }
         .add-section h3 { font-size: 0.9rem; margin-bottom: 12px; color: #ccc; }
@@ -37,12 +29,53 @@
         .message.error { background: #3a1a1a; color: #f87171; display: block; }
         .loading { text-align: center; color: #666; padding: 40px; }
         .empty { color: #666; font-size: 0.85rem; padding: 8px 0; }
+
+        /* TV Login modal */
+        .modal-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.visible { display: flex; }
+        .modal {
+            background: #1a1a1a;
+            border-radius: 16px;
+            padding: 28px 24px;
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+        }
+        .modal h2 { font-size: 1.2rem; margin-bottom: 6px; }
+        .modal p { color: #888; font-size: 0.85rem; margin-bottom: 20px; }
+        .modal input { margin-bottom: 12px; }
+        .modal-btn {
+            width: 100%; padding: 13px;
+            background: #a855f7; border: none;
+            border-radius: 10px; color: #fff;
+            font-size: 1rem; font-weight: bold;
+            cursor: pointer; margin-bottom: 10px;
+        }
+        .modal-btn:disabled { background: #555; cursor: not-allowed; }
+        .modal-btn.secondary { background: #2a2a2a; color: #aaa; }
+        .modal-error { color: #f87171; font-size: 0.85rem; margin-bottom: 10px; display: none; }
+        .modal-error.visible { display: block; }
+        .modal-success-icon { font-size: 3rem; text-align: center; margin-bottom: 12px; }
+        .modal-success-title { font-size: 1.1rem; font-weight: bold; text-align: center; margin-bottom: 8px; }
+        .modal-success-desc { color: #888; font-size: 0.85rem; text-align: center; }
     </style>
 </head>
 <body>
     <div class="logo">NUVIO</div>
     <div class="subtitle">Gestione Addon dalla TV</div>
     <div id="app"><div class="loading">Caricamento...</div></div>
+
+    <!-- TV Login modal -->
+    <div class="modal-overlay" id="tvLoginModal">
+        <div class="modal" id="tvLoginModalContent"></div>
+    </div>
 
 <script>
     const SUPABASE_URL = 'https://xuonpifwlrutnnzisovs.supabase.co';
@@ -51,21 +84,156 @@
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
 
-    // Stato globale
+    // Stato globale addon
     let addonUrls = [];
-    let addonNames = {};   // cache nomi: url -> nome
+    let addonNames = {};
     let renderPending = false;
 
-    async function rpc(fn, body) {
+    // ─── Supabase helpers ────────────────────────────────────────────────────
+
+    async function rpc(fn, body, authToken) {
+        const token = authToken || SUPABASE_ANON_KEY;
         const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+            headers: {
+                'Content-Type': 'application/json',
+                apikey: SUPABASE_ANON_KEY,
+                Authorization: `Bearer ${token}`
+            },
             body: JSON.stringify(body)
         });
-        const data = await res.json();
+        const text = await res.text();
+        const data = text ? JSON.parse(text) : null;
         if (!res.ok) throw new Error(JSON.stringify(data));
         return data;
     }
+
+    async function signInWithEmail(email, password) {
+        const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY },
+            body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error_description || data?.msg || 'Login fallito');
+        return data; // { access_token, refresh_token, ... }
+    }
+
+    // ─── TV Login Flow ────────────────────────────────────────────────────────
+
+    async function approveTvLogin(code, userAccessToken) {
+        // Prova prima la funzione Edge dedicata all'approvazione
+        const edgeFns = [
+            `${SUPABASE_URL}/functions/v1/tv-logins-approve`,
+            `${SUPABASE_URL}/functions/v1/tv-login-approve`,
+        ];
+        for (const url of edgeFns) {
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        apikey: SUPABASE_ANON_KEY,
+                        Authorization: `Bearer ${userAccessToken}`
+                    },
+                    body: JSON.stringify({ code })
+                });
+                if (res.ok) return { ok: true };
+                const txt = await res.text();
+                // 404 = funzione non esiste, prova la prossima
+                if (res.status === 404) continue;
+                throw new Error(txt);
+            } catch (e) {
+                if (e.message && e.message.includes('fetch')) continue;
+                throw e;
+            }
+        }
+
+        // Fallback: RPC Postgres
+        const rpcNames = [
+            'approve_tv_login_session',
+            'approve_tv_login',
+            'confirm_tv_login_session',
+        ];
+        let lastErr = null;
+        for (const fn of rpcNames) {
+            try {
+                await rpc(fn, { p_code: code }, userAccessToken);
+                return { ok: true };
+            } catch (e) {
+                const msg = String(e.message || '').toLowerCase();
+                // "could not find the function" = non esiste, prova il prossimo
+                if (msg.includes('could not find') || msg.includes('does not exist') || msg.includes('42883')) {
+                    lastErr = e;
+                    continue;
+                }
+                throw e;
+            }
+        }
+        throw lastErr || new Error('Nessuna funzione di approvazione trovata');
+    }
+
+    function showTvLoginModal() {
+        renderTvLoginForm();
+        document.getElementById('tvLoginModal').classList.add('visible');
+    }
+
+    function hideTvLoginModal() {
+        document.getElementById('tvLoginModal').classList.remove('visible');
+    }
+
+    function renderTvLoginForm(errorMsg) {
+        const content = document.getElementById('tvLoginModalContent');
+        content.innerHTML = `
+            <h2>🔐 Login TV</h2>
+            <p>Inserisci le tue credenziali per autorizzare l'accesso sulla TV.</p>
+            <div class="modal-error ${errorMsg ? 'visible' : ''}" id="modalError">${escapeHtml(errorMsg || '')}</div>
+            <input type="email" id="tvEmail" placeholder="Email" autocomplete="email" />
+            <input type="password" id="tvPassword" placeholder="Password" autocomplete="current-password" />
+            <button class="modal-btn" id="tvLoginBtn" onclick="doTvLogin()">Accedi e autorizza TV</button>
+            <button class="modal-btn secondary" onclick="hideTvLoginModal()">Annulla</button>
+        `;
+        // Enter key submit
+        content.querySelectorAll('input').forEach(inp => {
+            inp.addEventListener('keydown', e => { if (e.key === 'Enter') doTvLogin(); });
+        });
+    }
+
+    function renderTvLoginSuccess() {
+        const content = document.getElementById('tvLoginModalContent');
+        content.innerHTML = `
+            <div class="modal-success-icon">✅</div>
+            <div class="modal-success-title">TV autorizzata!</div>
+            <div class="modal-success-desc">Torna alla TV — il login si completerà automaticamente entro qualche secondo.</div>
+        `;
+    }
+
+    async function doTvLogin() {
+        const email = document.getElementById('tvEmail')?.value?.trim();
+        const password = document.getElementById('tvPassword')?.value;
+        if (!email || !password) {
+            renderTvLoginForm('Inserisci email e password.');
+            return;
+        }
+
+        const btn = document.getElementById('tvLoginBtn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Accesso in corso...'; }
+
+        try {
+            const session = await signInWithEmail(email, password);
+            const token = session.access_token;
+            if (!token) throw new Error('Token di sessione mancante');
+
+            if (btn) btn.textContent = 'Autorizzazione TV...';
+            await approveTvLogin(code, token);
+
+            renderTvLoginSuccess();
+        } catch (e) {
+            renderTvLoginForm(e.message || 'Errore sconosciuto');
+        }
+    }
+
+    // ─── Addon manager ───────────────────────────────────────────────────────
 
     async function fetchManifestName(url) {
         if (addonNames[url]) return addonNames[url];
@@ -84,17 +252,12 @@
     }
 
     function extractDomain(url) {
-        try {
-            return new URL(url).hostname;
-        } catch {
-            return url;
-        }
+        try { return new URL(url).hostname; } catch { return url; }
     }
 
     function formatDisplayUrl(url) {
         try {
             const u = new URL(url);
-            // Mostra solo host + inizio path, max 40 caratteri
             const short = u.hostname + (u.pathname !== '/' ? u.pathname : '');
             return short.length > 50 ? short.slice(0, 47) + '...' : short;
         } catch {
@@ -102,16 +265,19 @@
         }
     }
 
-    // Render sincrono della lista (senza attendere i manifest)
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
     function renderList() {
         const addonList = document.getElementById('addonList');
         if (!addonList) return;
-
         if (addonUrls.length === 0) {
             addonList.innerHTML = '<div class="empty">Nessun addon installato</div>';
             return;
         }
-
         addonList.innerHTML = addonUrls.map((url, i) => {
             const name = addonNames[url] || extractDomain(url);
             const displayUrl = formatDisplayUrl(url);
@@ -127,15 +293,6 @@
         }).join('');
     }
 
-    function escapeHtml(str) {
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
-    }
-
-    // Fetch nomi in background e aggiorna la lista
     async function refreshNames() {
         if (renderPending) return;
         renderPending = true;
@@ -151,7 +308,8 @@
             <div class="addon-list" id="addonList"></div>
             <div class="add-section">
                 <h3>Aggiungi addon</h3>
-                <input type="url" id="newUrl" placeholder="https://example.com/manifest.json" autocomplete="off" />
+                <input type="text" id="newUrl" placeholder="https://example.com/manifest.json"
+                    autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
                 <button class="add-btn" id="addBtn" onclick="addAddon()">Aggiungi</button>
             </div>
             <button class="save-btn" id="saveBtn" onclick="save()">✓ Salva sulla TV</button>
@@ -163,27 +321,6 @@
         if (!el) return;
         el.textContent = text;
         el.className = `message ${type}`;
-    }
-
-    async function load() {
-        if (!code) {
-            document.getElementById('app').innerHTML = '<div class="loading">Codice mancante nell\'URL</div>';
-            return;
-        }
-
-        try {
-            const result = await rpc('get_addon_sync', { p_code: code });
-            const row = Array.isArray(result) ? result[0] : result;
-            if (!row) throw new Error('Sessione non trovata o scaduta');
-            addonUrls = Array.isArray(row.addon_urls) ? [...row.addon_urls] : [];
-        } catch (e) {
-            document.getElementById('app').innerHTML = `<div class="loading">Errore: ${e.message}</div>`;
-            return;
-        }
-
-        document.getElementById('app').innerHTML = buildAppHtml();
-        renderList();
-        refreshNames(); // carica i nomi in background
     }
 
     function removeAddon(index) {
@@ -198,17 +335,13 @@
         const raw = input.value.trim();
         const url = raw.replace(/\/manifest\.json$/, '').replace(/\/+$/, '');
         if (!url) return;
-
         if (addonUrls.includes(url)) {
             showMessage('Addon già presente nella lista.', 'error');
             return;
         }
-
         addonUrls.push(url);
         input.value = '';
         renderList();
-
-        // Fetch nome in background senza bloccare
         fetchManifestName(url).then(() => renderList());
     }
 
@@ -226,6 +359,47 @@
             btn.disabled = false;
             btn.textContent = '✓ Salva sulla TV';
         }
+    }
+
+    // ─── Entry point ─────────────────────────────────────────────────────────
+
+    async function load() {
+        if (!code) {
+            document.getElementById('app').innerHTML = '<div class="loading">Codice mancante nell\'URL</div>';
+            return;
+        }
+
+        // Prova prima get_addon_sync (flusso normale addon manager)
+        try {
+            const result = await rpc('get_addon_sync', { p_code: code });
+            const row = Array.isArray(result) ? result[0] : result;
+            if (!row) throw new Error('Sessione non trovata o scaduta');
+
+            // Successo → siamo in modalità addon manager
+            addonUrls = Array.isArray(row.addon_urls) ? [...row.addon_urls] : [];
+            document.getElementById('app').innerHTML = buildAppHtml();
+            renderList();
+            refreshNames();
+
+            // Se c'è anche un login TV pendente, mostralo in overlay
+            if (row.tv_login_pending === true || row.requires_tv_login === true) {
+                showTvLoginModal();
+            }
+            return;
+        } catch (e) {
+            const msg = String(e.message || '').toLowerCase();
+            // "not found" / "expired" = codice addon, ma scaduto
+            if (!msg.includes('could not find') && !msg.includes('does not exist') && !msg.includes('42883')) {
+                // Errore reale addon sync (non "funzione mancante") → potrebbe essere un TV login code
+                // Mostriamo sia l'app normale vuota sia il modal di TV login
+                console.warn('get_addon_sync error, assuming TV login code:', e.message);
+            }
+        }
+
+        // Fallback: mostra direttamente il modal di TV login
+        document.getElementById('app').innerHTML = buildAppHtml();
+        renderList();
+        showTvLoginModal();
     }
 
     load();
